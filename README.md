@@ -1,4 +1,4 @@
 EBPatcher
 =========
 
-Easy-to-use EarthBound Patcher.
+*An easy-to-use EarthBound ROM patcher.*
