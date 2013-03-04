@@ -10,8 +10,8 @@ import sys
 from PyQt4 import QtCore, QtGui, uic
 import res
 
-from BPS import *
-from IPS import *
+from BPSPatch import *
+from IPSPatch import *
 from ROM import *
 
 # The current EBPatcher version.

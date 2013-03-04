@@ -5,7 +5,7 @@ from io import BytesIO
 from hashlib import md5
 from zlib import crc32
 
-from BPS import *
+from BPSPatch import *
 
 # Unheadered, clean ROM.
 EB_MD5 = "a864b2e5c141d2dec1c4cbed75a42a85"
