@@ -33,7 +33,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../res/res.qrc">
-    <normaloff>:/img/EBPatcher_Icon.ico</normaloff>:/img/EBPatcher_Icon.ico</iconset>
+    <normaloff>:/img/EBPatcher_Icon.png</normaloff>:/img/EBPatcher_Icon.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">* {
@@ -52,7 +52,7 @@
    </property>
    <property name="styleSheet">
     <string notr="true">QFrame#Logo {
-	background-image: url(:/img/EBPatcher_Icon.ico);
+	background-image: url(:/img/EBPatcher_Icon.png);
 	background-position: center;
 	background-repeat: no-repeat;
 }</string>

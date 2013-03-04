@@ -27,6 +27,9 @@ class IPSPatch(BytesIO):
         # Check its validity and load the records.
         if self.getvalue() and self.read(5) == b"PATCH" and self.loadRecords():
             self.valid = True
+            print("IPSPatch.__init__(): Valid IPS patch.")
+        else:
+            print("IPSPatch.__init__(): Invalid IPS patch.")
 
     def applyToTarget(self, rom):
         """Applies the patch to the target ROM's data."""

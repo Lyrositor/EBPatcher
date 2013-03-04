@@ -36,7 +36,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../res/res.qrc">
-    <normaloff>:/img/EBPatcher_Icon.ico</normaloff>:/img/EBPatcher_Icon.ico</iconset>
+    <normaloff>:/img/EBPatcher_Icon.png</normaloff>:/img/EBPatcher_Icon.png</iconset>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -355,7 +355,7 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
        <property name="geometry">
         <rect>
          <x>20</x>
-         <y>185</y>
+         <y>190</y>
          <width>271</width>
          <height>31</height>
         </rect>
@@ -901,7 +901,7 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
    <widget class="QLabel" name="HelpLabel">
     <property name="geometry">
      <rect>
-      <x>520</x>
+      <x>530</x>
       <y>100</y>
       <width>361</width>
       <height>31</height>
@@ -954,10 +954,40 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QLabel" name="VersionNumber">
+    <property name="geometry">
+     <rect>
+      <x>467</x>
+      <y>80</y>
+      <width>81</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Segoe Print</family>
+      <pointsize>13</pointsize>
+      <weight>75</weight>
+      <italic>true</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: #001642;
+font-family: &quot;Segoe Print&quot;;
+font-size: 38px;
+font-style: italic;
+font-weight: bold;</string>
+    </property>
+    <property name="text">
+     <string>1.0</string>
+    </property>
+   </widget>
    <zorder>Logo</zorder>
    <zorder>HelpButton</zorder>
    <zorder>HelpLabel</zorder>
    <zorder>Tabs</zorder>
+   <zorder>VersionNumber</zorder>
   </widget>
  </widget>
  <resources>

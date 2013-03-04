@@ -23,12 +23,11 @@ class BPSPatch(BytesIO):
         self.metadata = None
         self.source = [None, None]
         self.target = [None, None]
-        self.valid = False
 
         # Initialize the data.
         if not new:
             BytesIO.__init__(self, open(patchPath, "rb").read())
-            self.checkValidity()
+            self.valid = self.checkValidity()
         else:
             BytesIO.__init__(self)
             self.patchPath = patchPath
@@ -36,6 +35,7 @@ class BPSPatch(BytesIO):
     def applyToTarget(self, rom):
         """Applies the patch to the target ROM."""
 
+        # Make a copy of the ROM.
         self.seek(0)
         self.truncate(self.target[0])
         rom.seek(0)
@@ -59,16 +59,27 @@ class BPSPatch(BytesIO):
                     self.source[1] = item.value
                 elif isinstance(item, TargetCRC32):
                     self.target[1] = item.value
-            self.valid = True
+            print("BPSPatch.checkValidity():\n"
+                  "\tSource Size: {}. Source CRC32: {}.\n"
+                  "\tTarget Size: {}. Target CRC32: {}.".format(self.source[0],
+                  self.source[1], self.target[0], self.target[1]))
         except:
-            return
+            return False
 
         # Check to see if it is an EBPatcher-created patch.
         try:
             self.info = json.loads(self.metadata)
             assert self.info["patcher"] == "EBPatcher"
+            print("BPSPatch.checkValidity(): Patch made with EBPatcher.\n"
+                  "\tTitle: {}\n\tAuthor: {}\n\tDescription: {}".format(
+                  self.info["title"], self.info["author"],
+                  self.info["description"]))
         except:
             self.info = None
+            print("BPSPatch.checkValidity(): Patch not made with EBPatcher.")
+
+        # If we made it this far, the patch is valid.
+        return True
 
     def createFromSource(self, sourceROM, targetROM, metadata):
         """Creates a BPS patch from the source and target ROMs."""

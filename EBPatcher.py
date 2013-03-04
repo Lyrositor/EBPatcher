@@ -14,6 +14,9 @@ from BPS import *
 from IPS import *
 from ROM import *
 
+# The current EBPatcher version.
+VERSION = 1.0
+
 # The hack repository website.
 WEBSITE = "http://starmen.net/pkhack/"
 
@@ -36,12 +39,20 @@ class EBPatcher(QtGui.QApplication):
         self.createPatch = None
         self.createCleanROM = None
         self.createHackedROM = None
+        self.currentPath = ""
 
         # Load the main window.
         QtGui.QApplication.__init__(self, args)
         self.main = QtGui.QMainWindow()
-        uic.loadUi("ui/Main.ui", self.main)
+        try:
+            uic.loadUi("ui/Main.ui", self.main)
+        except IOError:
+            print("Failed to locate UI file. Aborting.")
+            sys.exit(1)
         self.main.show()
+
+        # Set the version number.
+        self.main.VersionNumber.setText("{0:.1f}".format(VERSION))
 
         # The headered/unheadered buttons need to be able to be both unset.
         self.buttonGroup = QtGui.QButtonGroup()
@@ -145,9 +156,11 @@ class EBPatcher(QtGui.QApplication):
     def selectROM(self, button):
         """Opens the file selection dialogue for the EarthBound ROM."""
 
-        romPath = QtGui.QFileDialog.getOpenFileName(self.main, "Open ROM", "",
+        romPath = QtGui.QFileDialog.getOpenFileName(self.main, "Open ROM",
+                                                    self.currentPath,
                                                     "ROM files (*.smc *.sfc)")
         if romPath:
+            self.currentPath = os.path.dirname(romPath)
             # Has the Apply Patch browse button been pressed?
             if button == 1:
                 self.resetApplyStep(1)
@@ -159,7 +172,7 @@ class EBPatcher(QtGui.QApplication):
                 self.main.CreateStep1CleanField.setText(romPath)
             # Has the Hacked ROM browse button been pressed?
             elif button == 3:
-                self.createHackedROM = ROM(romPath, False)
+                self.createHackedROM = ROM(romPath)
                 self.main.CreateStep1HackedField.setText(romPath)
 
     def checkROM(self, romPath, field):
@@ -178,8 +191,9 @@ class EBPatcher(QtGui.QApplication):
 
             # If the ROM isn't a clean ROM, notify the user.
             if not self.applyROM.clean:
-                warning = ("<strong>Warning:</strong> this isn't a known clean "
-                          "ROM. Applying a patch to it might corrupt it.")
+                warning = ("<strong>Warning:</strong> this file is not a clean "
+                           "EarthBound ROM. Patching it may produce a ROM which"
+                           " plays incorrectly.")
                 self.main.ApplyStep1Notice.setStyleSheet("color: red")
                 self.main.ApplyStep1Notice.setText(warning)
 
@@ -188,7 +202,7 @@ class EBPatcher(QtGui.QApplication):
 
             # Reload the UI.
             if self.applyPatch:
-                self.checkPatch()
+                self.checkPatch(None)
         elif field == 2:
             if not self.createCleanROM:
                 return
@@ -206,7 +220,7 @@ class EBPatcher(QtGui.QApplication):
 
             # Reload the UI.
             if self.createPatch:
-                self.checkPatch()
+                self.checkPatch(None)
         elif field == 3:
             if not self.createHackedROM:
                 return
@@ -224,7 +238,7 @@ class EBPatcher(QtGui.QApplication):
 
             # Reload the UI.
             if self.createPatch:
-                self.checkPatch()
+                self.checkPatch(None)
 
     def selectPatch(self, button):
         """Opens the file selection dialogue for the patch."""
@@ -232,10 +246,10 @@ class EBPatcher(QtGui.QApplication):
         # Has the button from the Apply Patch screen been pressed?
         if button == 1:
             patchPath = QtGui.QFileDialog.getOpenFileName(self.main,
-                                                          "Open IPS/BPS patch",
-                                                          "", "IPS/BPS patches "
-                                                          "(*.bps *.ips)")
+                        "Open IPS/BPS patch", self.currentPath, "IPS/BPS "
+                        "patches (*.bps *.ips)")
             if patchPath:
+                self.currentPath = os.path.dirname(patchPath)
                 self.resetApplyStep(2)
                 if os.path.splitext(patchPath)[1] == ".bps":
                     self.applyPatch = BPSPatch(patchPath)
@@ -245,10 +259,11 @@ class EBPatcher(QtGui.QApplication):
 
         # Has the button from the Create Patch screen been pressed?
         elif button == 2:
-            patchPath = QtGui.QFileDialog.getSaveFileName(self.main,
-                                                          "Save BPS patch", "",
-                                                          "BPS patch (*.bps)")
+            patchPath = QtGui.QFileDialog.getSaveFileName(self.main, "Save BPS "
+                        "patch", os.path.join(self.currentPath, "patch.bps"),
+                        "BPS patch (*.bps)")
             if patchPath:
+                self.currentPath = os.path.dirname(patchPath)
                 self.resetCreateStep(2)
                 if patchPath[-4:] != ".bps":
                     patchPath += ".bps"
@@ -297,7 +312,8 @@ class EBPatcher(QtGui.QApplication):
         elif isinstance(self.applyPatch, BPSPatch) and \
              self.applyPatch.source[1] != self.applyROM.crc:
             warning = ("<strong>Warning:</strong> the patch was not made "
-                       "for this ROM. Applying it might corrupt the ROM.")
+                       "for this ROM. Applying it might produce a ROM which "
+                       "cannot be played.")
             self.main.ApplyStep2Notice.setStyleSheet("color: red;")
             self.main.ApplyStep2Notice.setAlignment(QtCore.Qt.AlignHCenter)
             self.main.ApplyStep2Notice.setText(warning)
@@ -394,5 +410,16 @@ class EBPatcher(QtGui.QApplication):
 ########
 
 if __name__ == "__main__":
+    print("EarthBound Patcher - {0:.1f}".format(VERSION))
+    stdout = sys.stdout
+    stderr = sys.stderr
+    if ("-d" in sys.argv or "--debug" in sys.argv):
+        print("Running in debug mode.")
+    else:
+        sys.stdout = open(os.devnull, "w")
+        sys.stderr = open(os.devnull, "w")
     a = EBPatcher(sys.argv)
-    sys.exit(a.exec_())
+    exit = a.exec_()
+    sys.stdout = stdout
+    sys.stderr = stderr
+    sys.exit(exit)

@@ -5,83 +5,107 @@ from io import BytesIO
 from hashlib import md5
 from zlib import crc32
 
-D = [0x45, 0x41, 0x52, 0x54, 0x48, 0x20, 0x42, 0x4f, 0x55, 0x4E, 0x44]
-EB_MD5 = "a864b2e5c141d2dec1c4cbed75a42a85"  # Unheadered - clean.
+from BPS import *
 
-# There is a different version of the ROM used by some members of the community.
-# Patch it to the clean version.
-EB_WRONG_MD5 = "8c28ce81c7d359cf9ccaa00d41f8ad33"
-EB_WRONG_DIFF = {0x281d: 0xd0, 0x281e: 0x1a, 0x839d: 0x31, 0x83a8: 0x32,
-                 0xa128: 0x31, 0xa141: 0xf0, 0xffcc: 0x20, 0xffcd: 0x20,
-                 0xffce: 0x20, 0xffd5: 0x31, 0x1ffe7: 0xef, 0x1ffe8: 0xef,
-                 0x1ffe9: 0xff, 0x1ffea: 0xc1, 0x3fdd6: 0xef, 0x3fdd7: 0xf2,
-                 0x3fdd8: 0xfd, 0x3fdd9: 0xc3, 0x3fdda: 0xf0}
+# Unheadered, clean ROM.
+EB_MD5 = "a864b2e5c141d2dec1c4cbed75a42a85"
+
+# The "wrong" MD5 hashes, and the bytes that need to be correct to obtain the
+# correct version of the ROM.
+EB_WRONG_MD5 = {"8c28ce81c7d359cf9ccaa00d41f8ad33": "patches/wrong1.bps",
+                "b2dcafd3252cc4697bf4b89ea3358cd5": "patches/wrong2.bps",
+                "0b8c04fc0182e380ff0e3fe8fdd3b183": "patches/wrong3.bps",
+                "2225f8a979296b7dcccdda17b6a4f575": "patches/wrong4.bps",
+                "eb83b9b6ea5692cefe06e54ea3ec9394": "patches/wrong5.bps",
+                "cc9fa297e7bf9af21f7f179e657f1aa1": "patches/wrong6.bps"}
 
 # ExHiROM expanded ROMs have two bytes different from LoROM.
-EXHIROM_DIFF = {0x0ffd5: 0x31, 0x0ffd7: 0x0c}
+EXHIROM_DIFF = {0xffd5: 0x31, 0xffd7: 0x0c}
+
+# The identification string for EarthBound ROMs.
+ID = b"EARTH BOUND"
 
 
 class ROM(BytesIO):
     """A container for manipulating EarthBound ROM data as a file."""
 
-    def __init__(self, romPath=None, trim=True, source=None):
-        """Loads the ROM's data in a buffer."""
+    def __init__(self, source, new=False):
+        """Loads the ROM's data in a buffer or copies an existing ROM."""
 
-        if not source:
-            # Load the data and remove the header/expanded area, if present.
-            # If the specified ROM is the hacked ROM used to create new patches,
-            # don't remove the expanded area, if present.
-            BytesIO.__init__(self, open(romPath, "rb").read())
-            self.romPath = romPath
+        if not new:
+            # Initialize the ROM's data.
+            BytesIO.__init__(self, open(source, "rb").read())
+            self.romPath = source
             self.clean = False
             self.valid = False
+            self.crc = None
+
+            # Check if there is a header; if there is one, remove it.
+            self.header = self.checkHeader()
+            if self.header:
+                self.removeHeader()
+
+            # Check if the ROM is big enough and if it's expanded; if it is, remove
+            # the unused expanded space.
             if len(self.getvalue()) < 0x300000:
                 return
-            self.checkHeader()
-            if trim:
-                self.checkExpanded()
+            if len(self.getvalue()) > 0x300000 and self.checkExpanded():
+                self.removeExpanded()
+
+            # Check the MD5 checksum, and try to fix the ROM if it's incorrect.
+            if not self.checkMD5():
+                self.repairROM()
+
+            # If we couldn't fix the ROM, try to remove a 0xff byte at the end.
+            if not self.checkMD5():
+                b = bytearray(self.getvalue())
+                if b[len(b) - 1] == 0xFF:
+                    b[len(b) - 1] = 0
+                if self.checkMD5(b):
+                    b = self.getbuffer()
+                    b[len(b) - 1] = 0
+                    del b
+
+            # Perform a final MD5 check for its validity. If it fails, check if
+            # it's at least an EarthBound ROM.
+            if self.checkMD5():
+                self.clean = True
+                self.valid = True
+                print("ROM.__init__(): Clean EarthBound ROM.")
+            elif self.checkEarthBound():
+                self.valid = True
+                print("ROM.__init__(): Unclean EarthBound ROM.")
+            else:
+                print("ROM.__init__(): Invalid EarthBound ROM.")
 
             # Get the CRC32 checksum (for BPS patches).
             self.crc = crc32(self.getvalue()) & 0xffffffff
 
-            # Check the MD5 checksum.
-            self.checkMD5()
-            if not self.valid:
-                b = self.getbuffer()
-                if b[len(b) - 1] == 0xFF:
-                    b[len(b) - 1] = 0
-                del b
-                self.checkMD5()
-
-            # If the MD5 check failed, see if it's at least an EarthBound ROM.
-            self.checkEarthBound()
         else:
-            # Copy the data from the source ROM file.
+            # Copy the source ROM's information.
+            BytesIO.__init__(self, source.getvalue())
             self.romPath = source.romPath
             self.clean = source.clean
             self.valid = source.valid
             self.crc = source.crc
             self.header = source.header
-            self.md5 = source.md5
-            self.write(source.getvalue())
-            self.seek(0)
 
     def copy(self):
         """Returns a copy of the ROM."""
 
-        return ROM(source=self)
+        return ROM(self, True)
 
     def checkHeader(self):
         """Check to see if the ROM is headered or not."""
 
-        self.header = 0
+        header = 0
         d = self.getvalue()
         try:
             # Check for a headered HiROM.
             if ~d[0x101dc] & 0xff == d[0x101de] and \
                ~d[0x101dd] & 0xff == d[0x101df] and \
-               list(d[0x101c0:0x101c0 + len(D)]) == D:
-                self.header = 0x200
+               d[0x101c0:0x101c0 + len(ID)] == ID:
+                header = 0x200
         except IndexError:
             pass
 
@@ -89,13 +113,22 @@ class ROM(BytesIO):
             # Check for a headered LoROM.
             if ~d[0x81dc] & 0xff == d[0x81de] and \
                ~d[0x81dd] & 0xff == d[0x81df] and \
-               list(d[0x101c0:0x101c0 + len(D)]) == D:
-                self.header = 0x200
+               d[0x101c0:0x101c0 + len(ID)] == ID:
+                header = 0x200
         except IndexError:
             pass
 
-        # Remove the header from the data.
-        newData = bytearray(d[self.header:])
+        if header:
+            print("ROM.checkHeader(): ROM is headered.")
+        else:
+            print("ROM.checkHeader(): ROM is unheadered.")
+
+        return header
+
+    def removeHeader(self):
+        """Removes the header from the data."""
+
+        newData = bytearray(self.getvalue()[self.header:])
         self.seek(-0x200, 2)
         self.truncate()
         self.seek(0)
@@ -104,37 +137,76 @@ class ROM(BytesIO):
     def checkExpanded(self):
         """Check to see if the ROM is HiROM or ExHiROM."""
 
+        # Get only the first three 0x300000 bytes.
+        d = bytearray(self.getvalue())[:0x300000]
+        for offset, diff in EXHIROM_DIFF.items():
+            d[offset] = diff
+
+        # If the normal area is unmodified, then the expanded area is unused and
+        # can be deleted.
+        if self.checkMD5(d):
+            print("ROM.checkExpanded(): ROM has unused expanded space.")
+            return True
+        # Otherwise, the expanded area should not be deleted.
+        else:
+            print("ROM.checkExpanded(): ROM has used expanded space.")
+            return False
+
+    def removeExpanded(self):
+        """Removes the expanded space."""
+
         newData = bytearray(self.getvalue())
-        if len(newData) > 0x300000:
-            if len(newData) > 0x400000:
-                for offset, diff in EXHIROM_DIFF.items():
-                    newData[offset] = diff
-            self.truncate(0x300000)
-            self.seek(0)
-            self.write(newData[:0x300000])
-
-    def checkMD5(self):
-        """Check to see if the ROM matches a known MD5 checksum."""
-
-        self.md5 = md5(self.getvalue()).hexdigest()
-        # If this is the slightly different version, patch it
-        if self.md5 == EB_WRONG_MD5:
-            newData = bytearray(self.getvalue())
-            for offset, diff in EB_WRONG_DIFF.items():
+        if len(newData) > 0x400000:
+            for offset, diff in EXHIROM_DIFF.items():
                 newData[offset] = diff
+        self.truncate(0x300000)
+        self.seek(0)
+        self.write(newData[:0x300000])
+
+    def checkMD5(self, data=None):
+        """Check to see if the data matches a known MD5 checksum."""
+
+        if not data:
+            data = self.getvalue()
+        md5Hex = md5(data).hexdigest()
+        print("ROM.checkMD5(): {}".format(md5Hex))
+        if md5Hex == EB_MD5:
+            return True
+        else:
+            return False
+
+    def repairROM(self):
+        """Attempts to repair the ROM to a known version of EarthBound."""
+
+        md5Hex = md5(self.getvalue()).hexdigest()
+        if md5Hex in EB_WRONG_MD5:
+            print("ROM.repairROM(): ROM is a known wrong EarthBound ROM.")
+            try:
+                patch = BPSPatch(EB_WRONG_MD5[md5Hex])
+            except IOError:
+                print("ROM.repairROM(): Could not find repair patch file.")
+                return
+            copyROM = self.copy()
+            try:
+                patch.applyToTarget(copyROM)
+            except:
+                print("ROM.repairROM(): Failed to apply repair patch.")
+                return
             self.seek(0)
-            self.write(newData)
-            self.md5 = md5(self.getvalue()).hexdigest()
-        if self.md5 == EB_MD5:
-            self.clean = True
-            self.valid = True
+            self.write(copyROM.getvalue())
+        else:
+            print("ROM.repairROM(): ROM is unknown.")
 
     def checkEarthBound(self):
         """As a last resort, check if the ROM is named "EARTH BOUND"."""
 
         d = self.getvalue()
-        if d[0xffc0:0xffcb] == b"EARTH BOUND":
-            self.valid = True
+        if d[0xffc0:0xffcb] == ID:
+            print("ROM.checkEarthBound(): ROM is an EarthBound ROM.")
+            return True
+        else:
+            print("ROM.checkEarthBound(): ROM is an unknown ROM.")
+            return False
 
     def modifySize(self, size):
         """Expands or shrinks the size of the ROM."""
