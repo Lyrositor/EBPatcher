@@ -23,21 +23,20 @@
 
 from io import BytesIO
 from hashlib import md5
-from zlib import crc32
 
-from BPSPatch import *
+from IPSPatch import *
 
 # Unheadered, clean ROM.
 EB_MD5 = "a864b2e5c141d2dec1c4cbed75a42a85"
 
 # The "wrong" MD5 hashes, and the bytes that need to be correct to obtain the
 # correct version of the ROM.
-EB_WRONG_MD5 = {"8c28ce81c7d359cf9ccaa00d41f8ad33": "patches/wrong1.bps",
-                "b2dcafd3252cc4697bf4b89ea3358cd5": "patches/wrong2.bps",
-                "0b8c04fc0182e380ff0e3fe8fdd3b183": "patches/wrong3.bps",
-                "2225f8a979296b7dcccdda17b6a4f575": "patches/wrong4.bps",
-                "eb83b9b6ea5692cefe06e54ea3ec9394": "patches/wrong5.bps",
-                "cc9fa297e7bf9af21f7f179e657f1aa1": "patches/wrong6.bps"}
+EB_WRONG_MD5 = {"8c28ce81c7d359cf9ccaa00d41f8ad33": "patches/wrong1.ips",
+                "b2dcafd3252cc4697bf4b89ea3358cd5": "patches/wrong2.ips",
+                "0b8c04fc0182e380ff0e3fe8fdd3b183": "patches/wrong3.ips",
+                "2225f8a979296b7dcccdda17b6a4f575": "patches/wrong4.ips",
+                "eb83b9b6ea5692cefe06e54ea3ec9394": "patches/wrong5.ips",
+                "cc9fa297e7bf9af21f7f179e657f1aa1": "patches/wrong6.ips"}
 
 # ExHiROM expanded ROMs have two bytes different from LoROM.
 EXHIROM_DIFF = {0xffd5: 0x31, 0xffd7: 0x0c}
@@ -54,11 +53,10 @@ class ROM(BytesIO):
 
         if not new:
             # Initialize the ROM's data.
-            BytesIO.__init__(self, open(source, "rb").read())
+            super().__init__(open(source, "rb").read())
             self.romPath = source
             self.clean = False
             self.valid = False
-            self.crc = None
 
             # Check if there is a header; if there is one, remove it.
             self.header = self.checkHeader()
@@ -98,16 +96,12 @@ class ROM(BytesIO):
             else:
                 print("ROM.__init__(): Invalid EarthBound ROM.")
 
-            # Get the CRC32 checksum (for BPS patches).
-            self.crc = crc32(self.getvalue()) & 0xffffffff
-
         else:
             # Copy the source ROM's information.
-            BytesIO.__init__(self, source.getvalue())
+            super().__init__(source.getvalue())
             self.romPath = source.romPath
             self.clean = source.clean
             self.valid = source.valid
-            self.crc = source.crc
             self.header = source.header
 
     def copy(self):
@@ -202,7 +196,7 @@ class ROM(BytesIO):
         if md5Hex in EB_WRONG_MD5:
             print("ROM.repairROM(): ROM is a known wrong EarthBound ROM.")
             try:
-                patch = BPSPatch(EB_WRONG_MD5[md5Hex])
+                patch = IPSPatch(EB_WRONG_MD5[md5Hex])
             except IOError:
                 print("ROM.repairROM(): Could not find repair patch file.")
                 return
@@ -234,8 +228,7 @@ class ROM(BytesIO):
         self.truncate(size)
         b = bytearray(self.getvalue())
         if len(b) < size:
-            while len(b) < size:
-                b.append(0)
+            b += bytes([0] * (size - len(b)))
             self.seek(0)
             self.write(b)
 

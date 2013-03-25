@@ -18,7 +18,7 @@
     along with EarthBound Patcher.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# IPS
+# IPSPatch
 # Handles the import of IPS patches (legacy).
 # Heavily based on the python-ips module.
 
@@ -26,37 +26,32 @@ from io import BytesIO
 import os
 import struct
 
-def readInt(strValue):
-    """Read a big-endian integer from the patch."""
-
-    return struct.unpack_from(">I", b"\x00" * (4 - len(strValue)) + strValue)[0]
-
 
 class IPSPatch(BytesIO):
     """The legacy patch format class, used to import patches."""
 
-    def __init__(self, patchPath):
+    def __init__(self, patchPath, new=False):
         """Loads an existing IPS patch."""
 
-        # Initialize the data.
-        BytesIO.__init__(self, open(patchPath, "rb").read())
-        self.header = 0
-        self.records = dict()
-        self.valid = False
+        if not new:
+            # Initialize the data.
+            super().__init__(open(patchPath, "rb").read())
+            self.header = 0
 
-        # Check its validity and load the records.
-        if self.getvalue() and self.read(5) == b"PATCH" and self.loadRecords():
-            self.valid = True
-            print("IPSPatch.__init__(): Valid IPS patch.")
-        else:
-            print("IPSPatch.__init__(): Invalid IPS patch.")
+            # Check its validity and load the records.
+            self.valid = self.checkValidity()
+            self.records = self.loadRecords()
+            if self.valid and self.records:
+                print("IPSPatch.__init__(): Valid IPS patch.")
+            else:
+                print("IPSPatch.__init__(): Invalid IPS patch.")
 
-    def applyToTarget(self, rom):
-        """Applies the patch to the target ROM's data."""
+    def checkValidity(self):
+        """Checks whether or not this patch is valid."""
 
-        for offset, diff in self.records.items():
-            rom.seek(offset - self.header)
-            rom.write(diff)
+        if self.read(5) != b"PATCH":
+            return False
+        return True
 
     def loadRecords(self):
         """Loads the IPS records from the patch."""
@@ -65,6 +60,7 @@ class IPSPatch(BytesIO):
         self.seek(5)
 
         # Start loading the records.
+        records = {}
         while True:
 
             # Read until an EOF is encountered.
@@ -74,25 +70,38 @@ class IPSPatch(BytesIO):
 
             # If the end has been reached, the patch is corrupt.
             if not i:
-                return False
+                return None
 
             self.seek(-3, os.SEEK_CUR)
 
             # Get the record details.
-            offset = readInt(self.read(3))
-            size = readInt(self.read(2))
+            offset = int.from_bytes(self.read(3), "big")
+            size = int.from_bytes(self.read(2), "big")
 
             # If it's an RLE record, treat it as such.
             if size == 0:
                 i = self.read(2)
-                sizeRLE = readInt(i)
+                sizeRLE = int.from_bytes(i, "big")
                 diff = self.read(1) * sizeRLE
 
-            # Otherwise, read it as a norml record.
+            # Otherwise, read it as a normal record.
             else:
                 diff = self.read(size)
 
-            self.records[offset] = diff
+            records[offset] = diff
 
-        return True
+        return records
 
+    def applyToTarget(self, rom):
+        """Applies the patch to the target ROM's data."""
+
+        # Expand the ROM if necessary.
+        last = sorted(self.records)[len(self.records) - 1]
+        newSize = last + len(self.records[last])
+        if newSize > len(rom.getvalue()):
+            rom.modifySize(newSize)
+
+        # Apply the records.
+        for offset, diff in self.records.items():
+            rom.seek(offset - self.header)
+            rom.write(diff)

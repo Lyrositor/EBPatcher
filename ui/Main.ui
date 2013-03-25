@@ -247,7 +247,7 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
         <string notr="true"/>
        </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select a &lt;span style=&quot; font-weight:600;&quot;&gt;BPS patch&lt;/span&gt; (recommended) or an &lt;span style=&quot; font-weight:600;&quot;&gt;IPS patch&lt;/span&gt; (legacy) to apply to your clean ROM.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Patches have the &amp;quot;.bps&amp;quot; or &amp;quot;.ips&amp;quot; file extension.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select an &lt;span style=&quot; font-weight:600;&quot;&gt;EBP patch&lt;/span&gt; (recommended) or an &lt;span style=&quot; font-weight:600;&quot;&gt;IPS patch&lt;/span&gt; (legacy) to apply to your clean ROM.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Patches have the &amp;quot;.ebp&amp;quot; or &amp;quot;.ips&amp;quot; file extension.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignJustify|Qt::AlignTop</set>
@@ -282,7 +282,7 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
         <string/>
        </property>
        <property name="placeholderText">
-        <string>BPS/IPS Patch</string>
+        <string>EBP/IPS Patch</string>
        </property>
       </widget>
       <widget class="QLabel" name="ApplyStep2Notice">
@@ -793,7 +793,7 @@ QLabel#ApplyStep1Notice, QLabel#ApplyStep2Notice, QLabel#CreateStep1Notice, QLab
         <string notr="true"/>
        </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your patch will be saved in the &lt;span style=&quot; font-weight:600;&quot;&gt;BPS&lt;/span&gt; format. You can provide a &lt;span style=&quot; font-weight:600;&quot;&gt;title&lt;/span&gt;, the &lt;span style=&quot; font-weight:600;&quot;&gt;author's name&lt;/span&gt; and a &lt;span style=&quot; font-weight:600;&quot;&gt;short description&lt;/span&gt; for it.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your patch will be saved in the &lt;span style=&quot; font-weight:600;&quot;&gt;EBP&lt;/span&gt; format. You can provide a &lt;span style=&quot; font-weight:600;&quot;&gt;title&lt;/span&gt;, the &lt;span style=&quot; font-weight:600;&quot;&gt;author's name&lt;/span&gt; and a &lt;span style=&quot; font-weight:600;&quot;&gt;short description&lt;/span&gt; for it.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignJustify|Qt::AlignTop</set>

@@ -28,12 +28,13 @@ import os
 import re
 import sys
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt4 import QtCore, QtGui
 import res
 
-from BPSPatch import *
+from EBPPatch import *
 from IPSPatch import *
 from ROM import *
+from ui import About, Main
 
 # The current EBPatcher version.
 VERSION = 1.0
@@ -46,6 +47,14 @@ def cap(s, l):
     Source: http://stackoverflow.com/questions/11602386/#11602405"""
 
     return s if len(s) <= l else s[0:l - 3] + "..."
+
+
+class MainWindow(QtGui.QMainWindow, Main.Ui_MainWindow):
+    """The main window for EBPatcher."""
+
+
+class AboutDialog(QtGui.QDialog, About.Ui_Dialog):
+    """The about dialog for EBPatcher."""
 
 
 class EBPatcher(QtGui.QApplication):
@@ -64,12 +73,8 @@ class EBPatcher(QtGui.QApplication):
 
         # Load the main window.
         QtGui.QApplication.__init__(self, args)
-        self.main = QtGui.QMainWindow()
-        try:
-            uic.loadUi("ui/Main.ui", self.main)
-        except IOError:
-            print("Failed to locate UI file. Aborting.")
-            sys.exit(1)
+        self.main = MainWindow()
+        self.main.setupUi(self.main)
         self.main.show()
 
         # Set the version number.
@@ -81,49 +86,38 @@ class EBPatcher(QtGui.QApplication):
         self.buttonGroup.addButton(self.main.ApplyStep2Unheadered)
 
         # Connect the signals.
-        self.connect(self.main.HelpButton, QtCore.SIGNAL("clicked()"),
-                     self.openAboutDialog)
-        self.connect(self.main.ApplyStep1Button, QtCore.SIGNAL("clicked()"),
-                     lambda button=1: self.selectROM(button))
-        self.connect(self.main.ApplyStep1Field,
-                     QtCore.SIGNAL("textChanged(QString)"),
-                     lambda romPath: self.checkROM(romPath, 1))
-        self.connect(self.main.ApplyStep2Button, QtCore.SIGNAL("clicked()"),
-                     lambda button=1: self.selectPatch(button))
-        self.connect(self.main.ApplyStep2Field,
-                     QtCore.SIGNAL("textChanged(QString)"), self.checkPatch)
-        self.connect(self.main.ApplyStep2Headered,
-                     QtCore.SIGNAL("toggled(bool)"), self.setHeadered)
-        self.connect(self.main.ApplyStep2Unheadered,
-                     QtCore.SIGNAL("toggled(bool)"), self.setUnheadered)
-        self.connect(self.main.ApplyPatchButton, QtCore.SIGNAL("clicked()"),
-                     self.applyPatchToROM)
-        self.connect(self.main.CreateStep1CleanButton,
-                     QtCore.SIGNAL("clicked()"),
-                     lambda button=2: self.selectROM(button))
-        self.connect(self.main.CreateStep1HackedButton,
-                     QtCore.SIGNAL("clicked()"),
-                     lambda button=3: self.selectROM(button))
-        self.connect(self.main.CreateStep1CleanField,
-                     QtCore.SIGNAL("textChanged(QString)"),
-                     lambda romPath: self.checkROM(romPath, 2))
-        self.connect(self.main.CreateStep1HackedField,
-                     QtCore.SIGNAL("textChanged(QString)"),
-                     lambda romPath: self.checkROM(romPath, 3))
-        self.connect(self.main.CreateStep2Button, QtCore.SIGNAL("clicked()"),
-                     lambda button=2: self.selectPatch(button))
-        self.connect(self.main.CreatePatchButton, QtCore.SIGNAL("clicked()"),
-                     self.createPatchFromROMs)
+        self.main.HelpButton.clicked.connect(self.openAboutDialog)
+        self.main.ApplyStep1Button.clicked.connect(lambda button=1:
+                                                   self.selectROM(1))
+        self.main.ApplyStep1Field.textChanged.connect(lambda romPath:
+                                                      self.checkROM(romPath, 1))
+        self.main.ApplyStep2Button.clicked.connect(lambda button=1:
+                                                   self.selectPatch(1))
+        self.main.ApplyStep2Field.textChanged.connect(self.checkPatch)
+        self.main.ApplyStep2Headered.toggled.connect(self.setHeadered)
+        self.main.ApplyStep2Unheadered.toggled.connect(self.setUnheadered)
+        self.main.ApplyPatchButton.clicked.connect(self.applyPatchToROM)
+        self.main.CreateStep1CleanButton.clicked.connect(lambda button=2:
+                                                         self.selectROM(2))
+        self.main.CreateStep1HackedButton.clicked.connect(lambda button=3:
+                                                         self.selectROM(3))
+        self.main.CreateStep1CleanField.textChanged.connect(lambda romPath:
+                                                      self.checkROM(romPath, 2))
+        self.main.CreateStep1HackedField.textChanged.connect(lambda romPath:
+                                                      self.checkROM(romPath, 3))
+        self.main.CreateStep2Button.clicked.connect(lambda button=2:
+                                                    self.selectPatch(2))
+        self.main.CreatePatchButton.clicked.connect(self.createPatchFromROMs)
         self.connect(self, QtCore.SIGNAL("startCreatingPatch"),
                      self.startCreatingPatch, QtCore.Qt.QueuedConnection)
 
     def openAboutDialog(self):
         """Opens the "About" dialog window."""
 
-        self.about = QtGui.QDialog()
-        uic.loadUi("ui/About.ui", self.about)
-        self.connect(self.about.GetMore, QtCore.SIGNAL("clicked()"), lambda w=0:
-                     QtGui.QDesktopServices.openUrl(QtCore.QUrl(WEBSITE)))
+        self.about = AboutDialog()
+        self.about.setupUi(self.about)
+        self.about.GetMore.clicked.connect(lambda w=0:
+                           QtGui.QDesktopServices.openUrl(QtCore.QUrl(WEBSITE)))
         self.about.setModal(True)
         self.about.show()
 
@@ -267,28 +261,28 @@ class EBPatcher(QtGui.QApplication):
         # Has the button from the Apply Patch screen been pressed?
         if button == 1:
             patchPath = QtGui.QFileDialog.getOpenFileName(self.main,
-                        "Open IPS/BPS patch", self.currentPath, "IPS/BPS "
-                        "patches (*.bps *.ips)")
+                        "Open EBP/IPS patch", self.currentPath, "EBP/IPS "
+                        "patches (*.ebp *.ips)")
             if patchPath:
                 self.currentPath = os.path.dirname(patchPath)
                 self.resetApplyStep(2)
-                if os.path.splitext(patchPath)[1] == ".bps":
-                    self.applyPatch = BPSPatch(patchPath)
+                if os.path.splitext(patchPath)[1] == ".ebp":
+                    self.applyPatch = EBPPatch(patchPath)
                 else:
                     self.applyPatch = IPSPatch(patchPath)
                 self.main.ApplyStep2Field.setText(patchPath)
 
         # Has the button from the Create Patch screen been pressed?
         elif button == 2:
-            patchPath = QtGui.QFileDialog.getSaveFileName(self.main, "Save BPS "
-                        "patch", os.path.join(self.currentPath, "patch.bps"),
-                        "BPS patch (*.bps)")
+            patchPath = QtGui.QFileDialog.getSaveFileName(self.main, "Save EBP "
+                        "patch", os.path.join(self.currentPath, "patch.ebp"),
+                        "EBP patch (*.ebp)")
             if patchPath:
                 self.currentPath = os.path.dirname(patchPath)
                 self.resetCreateStep(2)
-                if patchPath[-4:] != ".bps":
-                    patchPath += ".bps"
-                self.createPatch = BPSPatch(patchPath, True)
+                if patchPath[-4:] != ".ebp":
+                    patchPath += ".ebp"
+                self.createPatch = EBPPatch(patchPath, True)
                 self.main.CreateStep2Field.setText(patchPath)
                 self.main.CreatePatchButton.setEnabled(True)
 
@@ -307,12 +301,8 @@ class EBPatcher(QtGui.QApplication):
 
         manual = False
 
-        # If it's an IPS patch, issue a warning to the user.
-        if isinstance(self.applyPatch, IPSPatch):
-            manual = True
-
-        # If it's an EBPatcher BPS patch, display its metadata.
-        elif isinstance(self.applyPatch, BPSPatch) and self.applyPatch.info:
+        # If it's an EBP with metadata, display its metadata.
+        if isinstance(self.applyPatch, EBPPatch) and self.applyPatch.info:
             title = self.applyPatch.info["title"]
             if not title:
                 title = "<em>Unknown</em>"
@@ -329,15 +319,9 @@ class EBPatcher(QtGui.QApplication):
             self.main.ApplyStep2Notice.setAlignment(QtCore.Qt.AlignJustify)
             self.main.ApplyStep2Notice.setText(information)
 
-        # If it's an unknown BPS patch, verify its checksum.
-        elif isinstance(self.applyPatch, BPSPatch) and \
-             self.applyPatch.source[1] != self.applyROM.crc:
-            warning = ("<strong>Warning:</strong> the patch was not made "
-                       "for this ROM. Applying it might produce a ROM which "
-                       "cannot be played.")
-            self.main.ApplyStep2Notice.setStyleSheet("color: red;")
-            self.main.ApplyStep2Notice.setAlignment(QtCore.Qt.AlignHCenter)
-            self.main.ApplyStep2Notice.setText(warning)
+        # If it's an EBP patch with no metadata or if it's an IPS patch, issue
+        # a warning to the user.
+        else:
             manual = True
 
         # If the user must specify whether the patch is for headered or
@@ -376,19 +360,22 @@ class EBPatcher(QtGui.QApplication):
         """Apply the selected patch to the selected ROM."""
 
         try:
+            self.main.setCursor(QtCore.Qt.WaitCursor)
             self.applyPatch.applyToTarget(self.applyROM)
             self.applyROM.writeToFile()
         except:
+            self.main.setCursor(QtCore.Qt.ArrowCursor)
             QtGui.QMessageBox.critical(self.main, "Error",
                                        "There was an error applying the patch.")
             return
+        self.main.setCursor(QtCore.Qt.ArrowCursor)
         self.resetApplyStep(2)
         self.resetApplyStep(1)
         QtGui.QMessageBox.information(self.main, "Success",
                                       "The patch was successfully applied.")
 
     def createPatchFromROMs(self):
-        """Creates a BPS patch from the selected ROMs."""
+        """Creates a EBP patch from the selected ROMs."""
 
         self.main.CreateStep1.setDisabled(True)
         self.main.CreateStep2.setDisabled(True)
