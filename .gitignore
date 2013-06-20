@@ -33,3 +33,7 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# ROMs for testing
+test/*/*.smc
+test/*/*.sfc
