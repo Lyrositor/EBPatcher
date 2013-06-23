@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="img">
+    <file>EBPatcher_Icon.png</file>
+    <file>Logo.png</file>
+  </qresource>
+</RCC>
