@@ -93,9 +93,7 @@ Section -MainProgram
 ${INSTALL_TYPE}
 SetOverwrite ifnewer
 SetOutPath "$INSTDIR"
-File /r "..\build*"
-CopyFiles /SILENT "$INSTDIR\build\*" "$INSTDIR"
-RMDir /r "$INSTDIR\build"
+File /r "install\*"
 SectionEnd
 
 ######################################################################

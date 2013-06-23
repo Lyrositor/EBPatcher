@@ -6,7 +6,6 @@
 # Packages
 *.egg
 *.egg-info
-dist
 build
 eggs
 parts
@@ -37,3 +36,7 @@ nosetests.xml
 # ROMs for testing
 test/*/*.smc
 test/*/*.sfc
+
+dist/build
+dist/EBPatcher_Setup.exe
+dist/install/*
