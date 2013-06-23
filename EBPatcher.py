@@ -40,7 +40,7 @@ from ui import About, Main
 VERSION = 1.0
 
 # The hack repository website.
-WEBSITE = "http://starmen.net/pkhack/"
+WEBSITE = "http://hacks.lyros.net/"
 
 def cap(s, l):
     """Caps a string to a certain length and appends "..." afterwards.
