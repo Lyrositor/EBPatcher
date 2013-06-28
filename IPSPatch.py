@@ -97,7 +97,7 @@ class IPSPatch(BytesIO):
 
         # Expand the ROM if necessary.
         last = sorted(self.records)[len(self.records) - 1]
-        newSize = last + len(self.records[last])
+        newSize = last + len(self.records[last]) - self.header
         if newSize > len(rom.getvalue()):
             rom.modifySize(newSize)
 
