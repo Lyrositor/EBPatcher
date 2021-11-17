@@ -28,7 +28,7 @@ import os
 import re
 import sys
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import res
 
 from EBPPatch import *
@@ -49,16 +49,19 @@ def cap(s, l):
     return s if len(s) <= l else s[0:l - 3] + "..."
 
 
-class MainWindow(QtGui.QMainWindow, Main.Ui_MainWindow):
+class MainWindow(QtWidgets.QMainWindow, Main.Ui_MainWindow):
     """The main window for EBPatcher."""
 
 
-class AboutDialog(QtGui.QDialog, About.Ui_Dialog):
+class AboutDialog(QtWidgets.QDialog, About.Ui_Dialog):
     """The about dialog for EBPatcher."""
 
 
-class EBPatcher(QtGui.QApplication):
+class EBPatcher(QtWidgets.QApplication):
     """The Qt application used for EBPatcher."""
+    # Create signal as it was not automatically inherited from QApplication like in pyQT4 < 4.15
+    #https://www.riverbankcomputing.com/static/Docs/PyQt4/new_style_signals_slots.html
+    runPatch = QtCore.pyqtSignal()
 
     def __init__(self, args):
         """Initializes the application and opens the main window."""
@@ -72,7 +75,7 @@ class EBPatcher(QtGui.QApplication):
         self.currentPath = ""
 
         # Load the main window.
-        QtGui.QApplication.__init__(self, args)
+        QtWidgets.QApplication.__init__(self, args)
         self.main = MainWindow()
         self.main.setupUi(self.main)
         self.main.show()
@@ -81,7 +84,7 @@ class EBPatcher(QtGui.QApplication):
         self.main.VersionNumber.setText("{0:.1f}".format(VERSION))
 
         # The headered/unheadered buttons need to be able to be both unset.
-        self.buttonGroup = QtGui.QButtonGroup()
+        self.buttonGroup = QtWidgets.QButtonGroup()
         self.buttonGroup.addButton(self.main.ApplyStep2Headered)
         self.buttonGroup.addButton(self.main.ApplyStep2Unheadered)
 
@@ -108,8 +111,7 @@ class EBPatcher(QtGui.QApplication):
         self.main.CreateStep2Button.clicked.connect(lambda button=2:
                                                     self.selectPatch(2))
         self.main.CreatePatchButton.clicked.connect(self.createPatchFromROMs)
-        self.connect(self, QtCore.SIGNAL("startCreatingPatch"),
-                     self.startCreatingPatch, QtCore.Qt.QueuedConnection)
+        self.runPatch.connect(self.startCreatingPatch, QtCore.Qt.QueuedConnection)
 
     def openAboutDialog(self):
         """Opens the "About" dialog window."""
@@ -171,24 +173,24 @@ class EBPatcher(QtGui.QApplication):
     def selectROM(self, button):
         """Opens the file selection dialogue for the EarthBound ROM."""
 
-        romPath = QtGui.QFileDialog.getOpenFileName(self.main, "Open ROM",
+        romPath = QtWidgets.QFileDialog.getOpenFileName(self.main, "Open ROM",
                                                     self.currentPath,
                                                     "ROM files (*.smc *.sfc)")
         if romPath:
-            self.currentPath = os.path.dirname(romPath)
+            self.currentPath = os.path.dirname(romPath[0])
             # Has the Apply Patch browse button been pressed?
             if button == 1:
                 self.resetApplyStep(1)
-                self.applyROM = ROM(romPath)
-                self.main.ApplyStep1Field.setText(romPath)
+                self.applyROM = ROM(romPath[0])
+                self.main.ApplyStep1Field.setText(romPath[0])
             # Has the Clean ROM browse button been pressed?
             elif button == 2:
-                self.createCleanROM = ROM(romPath)
-                self.main.CreateStep1CleanField.setText(romPath)
+                self.createCleanROM = ROM(romPath[0])
+                self.main.CreateStep1CleanField.setText(romPath[0])
             # Has the Hacked ROM browse button been pressed?
             elif button == 3:
-                self.createHackedROM = ROM(romPath)
-                self.main.CreateStep1HackedField.setText(romPath)
+                self.createHackedROM = ROM(romPath[0])
+                self.main.CreateStep1HackedField.setText(romPath[0])
 
     def checkROM(self, romPath, field):
         """Check the validity of the specified ROM."""
@@ -225,7 +227,7 @@ class EBPatcher(QtGui.QApplication):
             # The ROM has to be a clean ROM.
             if not self.createCleanROM.clean:
                 self.resetCreateStep(1, True, False)
-                QtGui.QMessageBox.critical(self.main, "Error", "This ROM must "
+                QtWidgets.QMessageBox.critical(self.main, "Error", "This ROM must "
                                            "be a known clean ROM.")
                 return
 
@@ -243,7 +245,7 @@ class EBPatcher(QtGui.QApplication):
             # The hacked ROM need only be valid.
             if not self.createHackedROM.valid:
                 self.resetCreateStep(1, False, True)
-                QtGui.QMessageBox.critical(self.main, "Error",
+                QtWidgets.QMessageBox.critical(self.main, "Error",
                                            "You have specified an invalid ROM.")
                 return
 
@@ -260,30 +262,30 @@ class EBPatcher(QtGui.QApplication):
 
         # Has the button from the Apply Patch screen been pressed?
         if button == 1:
-            patchPath = QtGui.QFileDialog.getOpenFileName(self.main,
+            patchPath = QtWidgets.QFileDialog.getOpenFileName(self.main,
                         "Open EBP/IPS patch", self.currentPath, "EBP/IPS "
                         "patches (*.ebp *.ips)")
             if patchPath:
-                self.currentPath = os.path.dirname(patchPath)
+                self.currentPath = os.path.dirname(patchPath[0])
                 self.resetApplyStep(2)
-                if os.path.splitext(patchPath)[1] == ".ebp":
-                    self.applyPatch = EBPPatch(patchPath)
+                if os.path.splitext(patchPath[0])[1] == ".ebp":
+                    self.applyPatch = EBPPatch(patchPath[0])
                 else:
-                    self.applyPatch = IPSPatch(patchPath)
-                self.main.ApplyStep2Field.setText(patchPath)
+                    self.applyPatch = IPSPatch(patchPath[0])
+                self.main.ApplyStep2Field.setText(patchPath[0])
 
         # Has the button from the Create Patch screen been pressed?
         elif button == 2:
-            patchPath = QtGui.QFileDialog.getSaveFileName(self.main, "Save EBP "
+            patchPath = QtWidgets.QFileDialog.getSaveFileName(self.main, "Save EBP "
                         "patch", os.path.join(self.currentPath, "patch.ebp"),
                         "EBP patch (*.ebp)")
             if patchPath:
-                self.currentPath = os.path.dirname(patchPath)
+                self.currentPath = os.path.dirname(patchPath[0])
                 self.resetCreateStep(2)
-                if patchPath[-4:] != ".ebp":
+                if patchPath[0][-4:] != ".ebp":
                     patchPath += ".ebp"
-                self.createPatch = EBPPatch(patchPath, True)
-                self.main.CreateStep2Field.setText(patchPath)
+                self.createPatch = EBPPatch(patchPath[0], True)
+                self.main.CreateStep2Field.setText(patchPath[0])
                 self.main.CreatePatchButton.setEnabled(True)
 
     def checkPatch(self, patchPath):
@@ -295,7 +297,7 @@ class EBPatcher(QtGui.QApplication):
         # Check its validity and load its contents.
         if not self.applyPatch.valid:
             self.resetApplyStep(2)
-            QtGui.QMessageBox.critical(self.main, "Error", "You have "
+            QtWidgets.QMessageBox.critical(self.main, "Error", "You have "
                                        "specified an invalid patch.")
             return
 
@@ -365,13 +367,13 @@ class EBPatcher(QtGui.QApplication):
             self.applyROM.writeToFile()
         except:
             self.main.setCursor(QtCore.Qt.ArrowCursor)
-            QtGui.QMessageBox.critical(self.main, "Error",
+            QtWidgets.QMessageBox.critical(self.main, "Error",
                                        "There was an error applying the patch.")
             return
         self.main.setCursor(QtCore.Qt.ArrowCursor)
         self.resetApplyStep(2)
         self.resetApplyStep(1)
-        QtGui.QMessageBox.information(self.main, "Success",
+        QtWidgets.QMessageBox.information(self.main, "Success",
                                       "The patch was successfully applied.")
 
     def createPatchFromROMs(self):
@@ -381,7 +383,7 @@ class EBPatcher(QtGui.QApplication):
         self.main.CreateStep2.setDisabled(True)
         self.main.CreatePatchButton.setDisabled(True)
         self.main.setCursor(QtCore.Qt.WaitCursor)
-        self.emit(QtCore.SIGNAL("startCreatingPatch"))
+        self.runPatch.emit()
 
     def startCreatingPatch(self):
         """Starts creating the patch in its own thread."""
@@ -398,7 +400,7 @@ class EBPatcher(QtGui.QApplication):
             self.createPatch.createFromSource(self.createCleanROM,
                                               self.createHackedROM, metadata)
         except:
-            QtGui.QMessageBox.critical(self.main, "Error",
+            QtWidgets.QMessageBox.critical(self.main, "Error",
                                        "There was an error creating the patch.")
             self.main.CreateStep1.setEnabled(True)
             self.main.CreateStep2.setEnabled(True)
@@ -410,7 +412,7 @@ class EBPatcher(QtGui.QApplication):
         self.main.setCursor(QtCore.Qt.ArrowCursor)
         self.resetCreateStep(2)
         self.resetCreateStep(1)
-        QtGui.QMessageBox.information(self.main, "Success",
+        QtWidgets.QMessageBox.information(self.main, "Success",
                                       "The patch was successfully created.")
 
 ########

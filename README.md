@@ -15,7 +15,7 @@ EarthBound Patcher is licensed under the terms of the [GNU Public License v3](ht
 ## Installing ##
 If a binary version of EarthBound Patcher does not exist for your system, you will have to install and run EarthBound Patcher manually, using Python. However, **Don't Panic**, as there are very few steps to do so.
 
-EarthBound Patcher requires [Python 3.2](http://python.org/) or higher to run. Additionally, you will need the [PyQt4](http://www.riverbankcomputing.com/software/pyqt/intro) module (for Python 3).
+EarthBound Patcher requires [Python 3.2](http://python.org/) or higher to run. Additionally, you will need the [PyQt5](http://www.riverbankcomputing.com/software/pyqt/intro) module (for Python 3).
 
 Once you have downloaded and installed the dependencies, you will have to clone the repository and run EarthBound Patcher:
 
