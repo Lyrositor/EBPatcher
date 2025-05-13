@@ -176,7 +176,7 @@ class EBPatcher(QtWidgets.QApplication):
         romPath = QtWidgets.QFileDialog.getOpenFileName(self.main, "Open ROM",
                                                     self.currentPath,
                                                     "ROM files (*.smc *.sfc)")
-        if romPath:
+        if romPath and romPath[0] != "":
             self.currentPath = os.path.dirname(romPath[0])
             # Has the Apply Patch browse button been pressed?
             if button == 1:
@@ -265,7 +265,7 @@ class EBPatcher(QtWidgets.QApplication):
             patchPath = QtWidgets.QFileDialog.getOpenFileName(self.main,
                         "Open EBP/IPS patch", self.currentPath, "EBP/IPS "
                         "patches (*.ebp *.ips)")
-            if patchPath:
+            if patchPath and patchPath[0] != "":
                 self.currentPath = os.path.dirname(patchPath[0])
                 self.resetApplyStep(2)
                 if os.path.splitext(patchPath[0])[1] == ".ebp":
@@ -279,7 +279,7 @@ class EBPatcher(QtWidgets.QApplication):
             patchPath = QtWidgets.QFileDialog.getSaveFileName(self.main, "Save EBP "
                         "patch", os.path.join(self.currentPath, "patch.ebp"),
                         "EBP patch (*.ebp)")
-            if patchPath:
+            if patchPath and patchPath[0] != "":
                 self.currentPath = os.path.dirname(patchPath[0])
                 self.resetCreateStep(2)
                 if patchPath[0][-4:] != ".ebp":
